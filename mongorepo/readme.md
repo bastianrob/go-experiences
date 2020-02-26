@@ -1,6 +1,6 @@
-# MONGOREPO CRUD Abstraction
+# MONGOREPO Abstraction Using `Generic Constructor`
 
-Sudah 1 tahun++ (sejak 2019) gw kerja pake golang + mongodb.
+Udah 1 tahun++ (sejak 2019) gw kerja pake golang + mongodb.
 Library yang gw pake selama ini adalah:
 
 <https://github.com/mongodb/mongo-go-driver>
@@ -10,10 +10,10 @@ Library yang gw pake selama ini adalah:
 Most resource biasanya punya operasi CRUD yang kira-kira seperti:
 
 ```bash
-'GET /{resources}'          # Get a list of resource
-'GET /{resources}/{id}'     # Get one resource based on its ID
-'POST /{resource}'          # Create a new resource
-'PUT /{resource}/{id}'      # Update an existing resource based on its ID
+'GET    /{resources}'       # Get a list of resource
+'GET    /{resources}/{id}'  # Get one resource based on its ID
+'POST   /{resource}'        # Create a new resource
+'PUT    /{resource}/{id}'   # Update an existing resource based on its ID
 'DELETE /{resource/{id}'    # Flag an existing resource as virtually deleted based on its ID
 ```
 
@@ -35,11 +35,11 @@ Dengan `Repository Design Pattern` biasanya kita akan define suatu repo misalnya
 ```go
 type PersonRepo struct {}
 
-func(r *PersonRepo) Get(ctx context.Context) ([]*Person, error)
-func(r *PersonRepo) GetOne(ctx context.Context, id string) (*Person, error)
-func(r *PersonRepo) Create(ctx context.Context, p *Person) error
-func(r *PersonRepo) Update(ctx context.Context, p *Person) error
-func(r *PersonRepo) Delete(ctx context.Context, id string) error
+func(r *PersonRepo) Get(ctx context.Context) ([]*Person, error) {}
+func(r *PersonRepo) GetOne(ctx context.Context, id string) (*Person, error) {}
+func(r *PersonRepo) Create(ctx context.Context, p *Person) error {}
+func(r *PersonRepo) Update(ctx context.Context, p *Person) error {}
+func(r *PersonRepo) Delete(ctx context.Context, id string) error {}
 ```
 
 dimana `PersonRepo` ini meng-handle 5 jenis `CRUD` yang kita define di point sebelumnya
@@ -132,14 +132,17 @@ func (r *MongoRepo) Get(ctx context.Context) ([]interface{}, error) {
 }
 ```
 
-Notice line 11 di snippet diatas: `entry := r.constructor()`.
-Disini lah letak kita `ngakalin` abstraksi di `Golang` cuma gara-gara `Go` gak punya generic.
+Notice line 11 di snippet diatas
+> `entry := r.constructor()`
 
-`Efeknya apa sih? masih gak ngeh...`
+Disini lah letak kita `ngakalin` abstraksi di `Golang`, yang gw sebut dengan `Generic Constructor`, gara-gara `Go` gak punya generic.
+
+> `Efeknya apa sih? masih gak ngeh bray...`
 
 Jadi, kita bisa bebas ngasih object/struct apapun di `constructor` function. e.g:
 
 ```go
+// inisialisasi koneksi ke mongo
 ctx := context.Background()
 conn := os.Getenv("MONGO_CONN")
 mongoopt := options.Client().ApplyURI(conn)
@@ -168,5 +171,5 @@ var personRepo = new Repo<Person>();
 var enemyRepo = new Repo<Enemy>();
 ```
 
-Udah cukup mirip lah ya gays. :v:
-Contoh code menyusul, kalo gw gak males
+Udah cukup mirip lah ya gays.
+Contoh code menyusul, kalo gw gak males. :v:
