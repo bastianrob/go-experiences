@@ -17,7 +17,7 @@ Most resource biasanya punya operasi CRUD yang kira-kira seperti:
 'DELETE /{resource/{id}'    # Flag an existing resource as virtually deleted based on its ID
 ```
 
-Which then brings us to next point
+Which then brings us to the next point
 
 ## Repository Design Pattern
 
@@ -73,7 +73,7 @@ Tapi karena di `Golang`:
 * Bukan OOP
 
 Kita (baca: software `engineer`/`developer`/`programmer`/`coder drones`/`highly trained monkeys`/`whatever`).
-Kita terpaksa ngetik `type {Resource}Repo struct ...` 10 kali.
+Kita terpaksa ngetik `type {Resource}Repo struct ...` berkali-kali.
 
 So, gimana caranya kita meng-abstract `Repo<T>` di `Golang`???
 
@@ -132,7 +132,7 @@ func (r *MongoRepo) Get(ctx context.Context) ([]interface{}, error) {
 }
 ```
 
-Notice line 11 di snippet diatas
+Notice line 12 di snippet diatas
 > `entry := r.constructor()`
 
 Disini lah letak kita `ngakalin` abstraksi di `Golang`, yang gw sebut dengan `Generic Constructor`, gara-gara `Go` gak punya generic.
@@ -171,5 +171,11 @@ var personRepo = new Repo<Person>();
 var enemyRepo = new Repo<Enemy>();
 ```
 
-Udah cukup mirip lah ya gays.
-Contoh code menyusul, kalo gw gak males. :v:
+Udah cukup mirip lah ya gays. :v:
+
+## Conclusion
+
+Kalo punya banyak collection yang `CRUD` operation nya mirip-mirip, gw rasa ini merupakan cara abstraksi yang cukup.
+Jeleknya adalah kita dikit-dikit lempar data-nya pake `interface{}` which defeats the purpose of strongly typed language.
+
+Ironic, how lack of generic makes code even more unsafe when we try to do abstraction around it...
