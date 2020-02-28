@@ -1204,7 +1204,7 @@ cs:
 * I am trying to access `GET /inquiries?status=Assigned`
   * `RBAC` states: `enforce query: status = New`
   * `GET /inquiries?status=Assigned` have the `status` query and the value is `Assigned`
-  * `Enforcer` doesn't care with the value requested, and will will forcefully re-write it as `?status=New`
+  * `Enforcer` doesn't care with the value requested, and will forcefully re-write it as `?status=New`
 ```
 
 So now as a `CS` even though I can read and construct a query, I can only get `inquiries` with `status=New`
