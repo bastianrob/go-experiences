@@ -1,0 +1,63 @@
+client:
+  inquiry:
+    get:
+      allow: true
+      ensure:
+        query:
+          - key: created_by
+            operator: "="
+            value: "ctx.email"
+
+    create:
+      allow: true
+
+    assign:
+      allow: false
+
+cs:
+  inquiry:
+    get:
+      allow: true
+      enforce:
+        query:
+          - key: status
+            operator: "="
+            value: "New"
+
+    create:
+      allow: false
+
+    assign:
+      allow: true
+
+ops:
+  inquiry:
+    get:
+      allow: true
+      ensure:
+        query:
+          - key: assignee
+            operator: "="
+            value: "ctx.email"
+
+    create:
+      allow: false
+
+    assign:
+      allow: false
+
+manager:
+  inquiry:
+    get:
+      allow: true
+      enforce:
+        query:
+          - key: status
+            operator: "="
+            value: "Assigned"
+
+    create:
+      allow: false
+
+    assign:
+      allow: true
