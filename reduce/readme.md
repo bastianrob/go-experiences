@@ -285,9 +285,9 @@ func TestReduce(t *testing.T) {
 And test results shows:
 
 ```bash
-Running tool: /usr/local/opt/go/libexec/bin/go test -timeout 30s github.com/bastianrob/arrayutil -run ^(TestReduce)$
+Running tool: /usr/local/opt/go/libexec/bin/go test -timeout 30s github.com/bastianrob/go-experiences/reduce -run ^(TestReduce)$
 
-ok      github.com/bastianrob/arrayutil    0.005s
+ok      github.com/bastianrob/go-experiences/reduce    0.005s
 Success: Tests passed.
 ```
 
