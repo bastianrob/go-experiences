@@ -8,7 +8,7 @@ Whatever, I'll still do it just because…
 
 ## So what's the benefit of `Map`
 
-Imagine an array of `int` with `N` number entries.
+Imagine an array of object with `N` number of entries.
 You want each entry in the array to be processed, but each process takes time for around 3 seconds.
 You starts writing the code, `imperatively`
 
@@ -134,7 +134,7 @@ return result.Interface(), nil
 ```go
 // Map Error Collection
 var (
-    ErrMapSourceNotArray   = errors.New("Input value is not an array")
+    ErrMapSourceNotArray   = errors.New("Source value is not an array")
     ErrMapTransformNil     = errors.New("Transform function cannot be nil")
     ErrMapTransformNotFunc = errors.New("Transform argument must be a function")
     ErrMapResultTypeNil    = errors.New("Map result type cannot be nil")
