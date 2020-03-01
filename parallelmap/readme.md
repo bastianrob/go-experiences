@@ -28,7 +28,7 @@ By having a `Map` function we can try to process each entry separately, in a `go
 
 ## Parallel Map in Go
 
-Imagine a function called `Map`. It takes 2 parameter:
+Imagine a function called `ParallelMap`. It takes 2 parameter:
 
 * `Array` of any kind of object. Let's call it `source`
 * `Function` which takes an entry of the `source`, and returns a new value / type after processing the entry. Let's call it `transform`

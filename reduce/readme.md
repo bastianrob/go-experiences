@@ -66,17 +66,17 @@ cannot convert func literal (type func(string, int, int) string) to type Reducer
 This stiff type checking is not what we want to have.
 We want the `reducer` function to accept any type of `accumulator`, `entry` and returns whatever we need it to return.
 
-### TODO-1. Ensure source's type
+### TODO-1 Ensure source's type
 
 ```go
 srcV := reflect.ValueOf(source)
 kind := srcV.Kind()
 if kind != reflect.Slice && kind != reflect.Array {
-    return nil, fmt.Errorf("Source value is not an array")
+    return nil, errors.New("Source value is not an array")
 }
 ```
 
-### TODO-2. Ensure `reducer` is not nil and is a function
+### TODO-2 Ensure `reducer` is not nil and is a function
 
 ```go
 if reducer == nil {
@@ -123,7 +123,7 @@ return accV.Interface(), nil
 ```go
 // Reducer Error Collection
 var (
-    ErrSourceNotArray   = errors.New("Source value is not an array")
+    ErrSourceNotArray = errors.New("Source value is not an array")
     ErrReducerNil     = errors.New("Reducer function cannot be nil")
     ErrReducerNotFunc = errors.New("Reducer argument must be a function")
 )
@@ -306,4 +306,4 @@ It's also nice that we can:
 * Read the reducer function name
 * Get a quick glance of its intention
 * Without having to read all the code inside
-* And confident it is proucing correct result when the reducer function is properly unit tested
+* And confident it is producing correct result when the reducer function is properly unit tested
