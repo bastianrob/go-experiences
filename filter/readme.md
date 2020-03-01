@@ -1,4 +1,4 @@
-# Checking out Parallel Filter in Go
+# Exploring Filter in Go
 
 Imagine an array object with `N` number of entries.
 You want to filter it to only get entries with `flagged = true`, OR `flagged = false, amount <= 500`.
@@ -449,7 +449,87 @@ Success: Benchmarks passed.
 
 Nope... just slightly faster time / op
 
+### What if we're not using go routine
+
+Let's make just `Filter` function:
+
+```go
+// Filter an array without go routine
+func Filter(source, filter interface{}) (interface{}, error) {
+    srcV := reflect.ValueOf(source)
+    kind := srcV.Kind()
+    if kind != reflect.Slice && kind != reflect.Array {
+        return nil, ErrSourceNotArray
+    }
+
+    if filter == nil {
+        return nil, ErrFilterFuncNil
+    }
+
+    fv := reflect.ValueOf(filter)
+    if fv.Kind() != reflect.Func {
+        return nil, ErrFilterNotFunc
+    }
+
+    T := reflect.TypeOf(source).Elem()                      // 1. Get type T of source's element
+    sliceOfT := reflect.MakeSlice(reflect.SliceOf(T), 0, 0) // 2. var sliceOfT = new Slice<T>()
+    ptrToSliceOfT := reflect.New(sliceOfT.Type())           // 3. ptrToSliceOfT = &sliceOfT
+    ptrToElementOfSliceT := ptrToSliceOfT.Elem()            // 4. ptrToElementOfSliceT = *ptrToSliceOfT
+    // God damn it go! if only you know this thing called generic...
+
+    // for each entry in source
+    for i := 0; i < srcV.Len(); i++ {
+        entry := srcV.Index(i)
+        // call filter function via reflection, and check the result
+        valid := fv.
+            Call([]reflect.Value{entry})[0].
+            Interface().(bool)
+
+        // if result is valid, send the entry into queue
+        // else, send zero value into queue
+        if valid {
+            appendResult := reflect.Append(ptrToElementOfSliceT, entry)
+            ptrToElementOfSliceT.Set(appendResult)
+        }
+    }
+
+    return ptrToElementOfSliceT.Interface(), nil
+}
+```
+
+Benchmark it:
+
+```go
+func BenchmarkFilterFast(b *testing.B) {
+    source := [100]int{}
+    for i := 0; i < len(source); i++ {
+        source[i] = i + 1
+    }
+    isMultipliedBy3 := func(num int) bool {
+        return num%3 == 0
+    }
+
+    b.ResetTimer()
+    for n := 0; n < b.N; n++ {
+        filter.Filter(source, isMultipliedBy3)
+    }
+}
+```
+
+And the results is:
+
+```bash
+BenchmarkFilterFast-4          50000         33171 ns/op        7864 B/op         244 allocs/op
+PASS
+ok      github.com/bastianrob/go-experiences/filter    2.008s
+Success: Benchmarks passed.
+```
+
+Sure it is faster than `ParallelFilter`, but still got murdered by `imperative` loop...
+
 ## Conclusion
 
-Unless you are process big chunks of array and filtering each entry takes a long time.
-Unfortunately there is no benefit to be gained by using `ParallelFilter`.
+Unfortunately, unless you are processing a big chunks of array and filtering each entry takes a long time, there is hardly any benefit to be gained by using `ParallelFilter`, `DeferredFilter`, or just `Filter`.
+
+I guess it would be better if we can stream the input source too, instead of sending a whole array.
+But that's `Pipeline Processing` topic I won't touch in this `readme` :weary:
