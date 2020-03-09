@@ -1,90 +1,84 @@
 package actor
 
 import (
+	"errors"
 	"fmt"
-	"runtime"
+	"sync"
 	"testing"
+	"time"
 )
 
-func baleSays(actor *Actor, in <-chan interface{}, out chan<- interface{}) {
-	for msg := range in {
-		out <- msg
+func Test_Actor(t *testing.T) {
+	words := [...]string{"One", "Two", "Three"}
+	actor := New(func(w int, actor *Actor, message interface{}) (interface{}, error) {
+		result := words[w-1]
+
+		fmt.Println("worker", w,
+			"receive", message,
+			"processed as", result,
+			"send to?", actor.outbox)
+
+		return result, nil
+	}, func(w int, actor *Actor, err error) {
+		fmt.Println(err)
+	}, &Options{Worker: 3})
+
+	wg := sync.WaitGroup{}
+	for i := 0; i <= 10; i++ {
+		wg.Add(1)
+		go func(i int) {
+			idx := i % 3
+			word := words[idx]
+			actor.Queue(word)
+			wg.Done()
+		}(i)
 	}
+
+	wg.Wait()
 }
 
-func baneSays(actor *Actor, in <-chan interface{}, out chan<- interface{}) {
-	for dialog := range in {
-		switch {
-		case dialog == "I AM VENGEANCE":
-			out <- "I AM INEVITABLE"
-		case dialog == "I AM THE NIGHT":
-			out <- "I AM BANE"
-		case dialog == "I'M BATMAN":
-			out <- "I WILL BREAK YOU"
-		default:
-			out <- "WHATEVER YOU SAY"
-		}
+func Test_ActionOrchestrate(t *testing.T) {
+	errPrinter := func(w int, actor *Actor, err error) {
+		fmt.Println("worker", w, "-", "err:", err)
 	}
-}
 
-func print(actor *Actor, in <-chan interface{}, out chan<- interface{}) {
-	for dialog := range in {
-		fmt.Println("Actor:", actor, "Says", dialog)
+	opt := &Options{
+		Worker: 3,
 	}
-}
 
-func Test_ActionSolo(t *testing.T) {
-	// bale := New(1)
-	// bane := New(1)
-	// printer := New(1)
-
-	// // what baleSays will be put to bane's inbox
-	// bale.AddProcessor(baleSays, bane.Inbox())
-	// // what baneSays will be put to printer's inbox
-	// bane.AddProcessor(baneSays, printer.Inbox())
-	// printer.AddProcessor(print, nil)
-
-	// bale.Queue("I AM VENGEANCE", "I AM THE NIGHT", "I'M BATMAN", "HEY HO!")
-
-	// time.Sleep(1 * time.Second)
-	// bale.Stop()
-	// bane.Stop()
-	// printer.Stop()
-
-	runtime.GOMAXPROCS(100)
-	bale := New(func(w int, actor *Actor, in interface{}) interface{} {
-		return in
-	}, 1)
-	bane := New(func(w int, actor *Actor, in interface{}) interface{} {
+	bale := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
+		return in, nil
+	}, errPrinter, opt)
+	bane := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
 		switch {
 		case in == "I AM VENGEANCE":
-			return "I AM INEVITABLE"
+			return "I AM INEVITABLE", nil
 		case in == "I AM THE NIGHT":
-			return "I AM BANE"
+			return "I AM BANE", nil
 		case in == "I'M BATMAN":
-			return "I WILL BREAK YOU"
+			return "I WILL BREAK YOU", nil
 		default:
-			return "WHATEVER YOU SAY"
+			return nil, errors.New("WHATEVER YOU SAY")
 		}
-	}, 1)
-	printer := New(func(w int, actor *Actor, in interface{}) interface{} {
-		return nil
-	}, 1)
+	}, errPrinter, opt)
+	printer := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
+		return nil, nil
+	}, errPrinter, opt)
 
 	fmt.Println(bale.Inbox(), bane.Inbox(), printer.Inbox())
+	fmt.Println(bale.Outbox(), bane.Outbox(), printer.Outbox())
 
 	bale.name = "Bale"
 	bane.name = "Bane"
 	printer.name = "Printer"
-	// what baleSays will be put to bane's inbox
-	bale.Start(1, bane.Inbox())
-	bale.Start(1, bane.Inbox())
-	bale.Start(1, bane.Inbox())
-	// what baneSays will be put to printer's inbox
-	bane.Start(3, printer.Inbox())
-	printer.Start(3, nil)
+
+	Direct(bale, bane, printer)
+
+	fmt.Println(bale.Inbox(), bane.Inbox(), printer.Inbox())
+	fmt.Println(bale.Outbox(), bane.Outbox(), printer.Outbox())
 
 	bale.Queue("I AM VENGEANCE", "I AM THE NIGHT", "I'M BATMAN", "HEY HO!")
+	time.Sleep(1 * time.Second)
 
 	bale.Stop()
 	bane.Stop()

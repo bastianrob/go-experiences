@@ -51,7 +51,8 @@ func (r *MongoRepo) GetOne(ctx context.Context, id string) (interface{}, error) 
 	_id, _ := primitive.ObjectIDFromHex(id)
 	res := r.collection.FindOne(ctx, bson.M{"_id": _id})
 	dbo := r.constructor()
-	return dbo, res.Decode(dbo)
+	err := res.Decode(dbo)
+	return dbo, err
 }
 
 // Create a new resource
