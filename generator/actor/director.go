@@ -4,7 +4,7 @@ package actor
 type Director struct {
 }
 
-// Direct output from source actor to target actor
+// Direct inbox of a target actor, as source actor's outbox
 func Direct(actors ...*Actor) {
 	var source *Actor
 	for _, target := range actors {

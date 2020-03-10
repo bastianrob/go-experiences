@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"testing"
-	"time"
 )
 
 func Test_Actor(t *testing.T) {
@@ -37,7 +36,41 @@ func Test_Actor(t *testing.T) {
 	wg.Wait()
 }
 
-func Test_ActionOrchestrate(t *testing.T) {
+func Test_ActorStop(t *testing.T) {
+	mux := sync.Mutex{}
+	var processed []interface{}
+	actor := New(func(w int, actor *Actor, message interface{}) (interface{}, error) {
+		mux.Lock()
+		processed = append(processed, message)
+		mux.Unlock()
+
+		return nil, nil
+	}, func(w int, actor *Actor, err error) {
+		fmt.Println(err)
+	}, &Options{Worker: 5})
+
+	expected := 0
+	for i := 1; i <= 100; i++ {
+		go actor.Queue(i)
+		expected = expected + i
+	}
+
+	pendings := actor.Stop()
+	combined := append(processed, pendings...)
+
+	sum := 0
+	for _, e := range combined {
+		sum = sum + e.(int)
+	}
+	if sum != expected {
+		t.Error("Sum of 1-100 must be", expected, "but received", sum)
+	}
+
+	fmt.Println("PEND", pendings)
+	fmt.Println("PROC", processed)
+}
+
+func Test_ActorDirected(t *testing.T) {
 	errPrinter := func(w int, actor *Actor, err error) {
 		fmt.Println("worker", w, "-", "err:", err)
 	}
@@ -78,9 +111,9 @@ func Test_ActionOrchestrate(t *testing.T) {
 	fmt.Println(bale.Outbox(), bane.Outbox(), printer.Outbox())
 
 	bale.Queue("I AM VENGEANCE", "I AM THE NIGHT", "I'M BATMAN", "HEY HO!")
-	time.Sleep(1 * time.Second)
+	// time.Sleep(1 * time.Second)
 
-	bale.Stop()
-	bane.Stop()
-	printer.Stop()
+	// bale.Stop()
+	// bane.Stop()
+	// printer.Stop()
 }

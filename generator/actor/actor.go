@@ -1,5 +1,9 @@
 package actor
 
+import (
+	"sync"
+)
+
 // Processor is the delegate which process a message
 // @worker is its assigned worker number (starts from 1) in case we make more than 1 worker
 // @actor is the reference to which actor that receives the message
@@ -27,12 +31,20 @@ func (opt *Options) configure() {
 
 // Actor ...
 type Actor struct {
-	name      string
+	// metadata
+	name string
+
+	// actor mechanism
 	inbox     chan interface{}
 	outbox    chan interface{}
 	failure   chan error
 	process   Processor
 	exception Exception
+
+	// exit mechanism
+	exit       chan struct{}
+	workgroup  *sync.WaitGroup // worker wait group
+	inboxgroup *sync.WaitGroup // inbox wait group
 }
 
 // New instance of an Actor with w as number of worker
@@ -44,6 +56,10 @@ func New(p Processor, e Exception, opt *Options) *Actor {
 		outbox:    opt.Output,
 		process:   p,
 		exception: e,
+
+		exit:       make(chan struct{}),
+		workgroup:  &sync.WaitGroup{},
+		inboxgroup: &sync.WaitGroup{},
 	}
 
 	actor.start(0, opt.Worker)
@@ -56,27 +72,44 @@ func (actor *Actor) start(idx, n int) {
 		return
 	}
 
-	go func(w int) {
-		for message := range actor.inbox {
+	// worker number starts from 1
+	go actor.work(idx + 1)
+	actor.start(idx+1, n)
+}
+
+func (actor *Actor) work(w int) {
+	actor.workgroup.Add(1)       // worker group is added
+	defer actor.workgroup.Done() // defer worker group done
+
+	for {
+		select {
+		case message := <-actor.inbox: // waits for message to come from inbox
 			result, err := actor.process(w, actor, message)
 
 			if err != nil && actor.exception != nil {
 				actor.exception(w, actor, err)
+				actor.inboxgroup.Done() // flag 1 message as done
 				continue
 			}
 
 			if actor.outbox != nil {
 				actor.outbox <- result
+				actor.inboxgroup.Done() // flag 1 message as done
 				continue
 			}
-		}
-	}(idx + 1) // worker number starts from 1
 
-	actor.start(idx+1, n)
+			// flag 1 message as done
+			actor.inboxgroup.Done()
+		case <-actor.exit: // listen on exit signal
+			return
+		}
+	}
 }
 
 // Queue a message to inbox
 func (actor *Actor) Queue(messages ...interface{}) {
+	// add length of message to inbox wait group
+	actor.inboxgroup.Add(len(messages))
 	for _, message := range messages {
 		actor.inbox <- message
 	}
@@ -92,7 +125,24 @@ func (actor *Actor) Outbox() <-chan interface{} {
 	return actor.outbox
 }
 
-// Stop all inbox
-func (actor *Actor) Stop() {
+// Stop actor from processing any message
+func (actor *Actor) Stop() (pendings []interface{}) {
+	// stop all worker from processing any inbox
+	close(actor.exit)
+	actor.workgroup.Wait()
+
+	// gather pending messages inside inbox and flag it as done
+	go func() {
+		for message := range actor.inbox {
+			pendings = append(pendings, message)
+			actor.inboxgroup.Done()
+		}
+	}()
+
+	// wait for pending messages gathering to be completed and close the inbox channel
+	actor.inboxgroup.Wait()
 	close(actor.inbox)
+
+	// return gathered pending messages
+	return pendings
 }
