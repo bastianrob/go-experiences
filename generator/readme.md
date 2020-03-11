@@ -1,9 +1,5 @@
 # Exploring Worker Pattern in Go
 
-> DDD, CQRS, Actor Model, State Machine, Saga, Aggregate Root
-> 
-> Generator Pattern, Yield, Lazy, Channel, CSM, Worker
-
 Imagine a `Domain` event called `Order.Placed`.
 Each `Order.Placed` contains:
 
@@ -1001,10 +997,10 @@ func Test_OrderAsAggregateRoot(t *testing.T) {
 
 In the test:
 
-* We mock all API call by using the `mock.APIClient`
+* We mock all API call by using the `mock.APIClient`. In real world, this might be a gRPC call.
 * Each API call is given `20ms` sleep to simulate latency
-* We instantiate an `Aggregate Root` and give it `20 worker`
-* We have total of `7 services` and each call cost `20ms` so 1 message should cost around `140ms`
+* We instantiate an `Aggregate Root` and give it `20 workers`
+* We have total of `7 services` and each call cost `20ms` so 1 message processing time should cost around `140ms`
 * We give `100 command` to the `Aggregate Root`
 * If each command takes `140ms` processing time, and we're giving `100`. Total time it takes is `14000ms` or `14s` if done serially
 * But we give `20 workers` to the `Aggregate Root` so the fastest we can achieve is `t = 14s / 20 = 0.7s`
