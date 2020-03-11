@@ -72,16 +72,15 @@ func Test_ActorStop(t *testing.T) {
 
 func Test_ActorDirected(t *testing.T) {
 	errPrinter := func(w int, actor *Actor, err error) {
-		fmt.Println("worker", w, "-", "err:", err)
-	}
-
-	opt := &Options{
-		Worker: 3,
+		fmt.Println("worker:", w, "actor:", actor.name, "err:", err)
 	}
 
 	bale := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
 		return in, nil
-	}, errPrinter, opt)
+	}, errPrinter, &Options{
+		Worker: 3,
+		Name:   "Bale",
+	})
 	bane := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
 		switch {
 		case in == "I AM VENGEANCE":
@@ -93,27 +92,25 @@ func Test_ActorDirected(t *testing.T) {
 		default:
 			return nil, errors.New("WHATEVER YOU SAY")
 		}
-	}, errPrinter, opt)
-	printer := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
+	}, errPrinter, &Options{
+		Worker: 3,
+		Name:   "Bane",
+	})
+	subtitle := New(func(w int, actor *Actor, in interface{}) (interface{}, error) {
+		fmt.Println("worker:", w, "actor:", actor.name, "receive:", in)
+		if in != "I AM INEVITABLE" && in != "I AM BANE" && in != "I WILL BREAK YOU" {
+			t.Error("Bane's subtitle must be one of:", "I AM INEVITABLE", "I AM BANE", "I WILL BREAK YOU")
+		}
 		return nil, nil
-	}, errPrinter, opt)
+	}, errPrinter, &Options{
+		Worker: 3,
+		Name:   "Subtitle",
+	})
 
-	fmt.Println(bale.Inbox(), bane.Inbox(), printer.Inbox())
-	fmt.Println(bale.Outbox(), bane.Outbox(), printer.Outbox())
-
-	bale.name = "Bale"
-	bane.name = "Bane"
-	printer.name = "Printer"
-
-	Direct(bale, bane, printer)
-
-	fmt.Println(bale.Inbox(), bane.Inbox(), printer.Inbox())
-	fmt.Println(bale.Outbox(), bane.Outbox(), printer.Outbox())
+	Direct(bale, bane, subtitle)
 
 	bale.Queue("I AM VENGEANCE", "I AM THE NIGHT", "I'M BATMAN", "HEY HO!")
-	// time.Sleep(1 * time.Second)
-
-	// bale.Stop()
-	// bane.Stop()
-	// printer.Stop()
+	bale.Stop()
+	bane.Stop()
+	subtitle.Stop()
 }

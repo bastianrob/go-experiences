@@ -1,9 +1,5 @@
 package actor
 
-// Director of Actors ...
-type Director struct {
-}
-
 // Direct inbox of a target actor, as source actor's outbox
 func Direct(actors ...*Actor) {
 	var source *Actor
@@ -13,7 +9,7 @@ func Direct(actors ...*Actor) {
 			continue
 		}
 
-		source.outbox = target.inbox
+		source.outbox = target
 		source = target
 	}
 }

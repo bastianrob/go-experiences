@@ -18,9 +18,10 @@ type Exception func(worker int, actor *Actor, err error)
 
 // Options when initializeing an Actor
 type Options struct {
-	Worker      int              // number of worker / processor go routine, defaults = 1
-	Output      chan interface{} // output channel, on which Actor will sned in after process is done
-	FailChannel chan<- error     // failure channel, on which Actor will send in case there is an error
+	Name        string       // actor's name
+	Worker      int          // number of worker / processor go routine, defaults = 1
+	Output      *Actor       // output actor, on which source actor will send a message after process is done
+	FailChannel chan<- error // failure channel, on which Actor will send in case there is an error
 }
 
 func (opt *Options) configure() {
@@ -35,8 +36,9 @@ type Actor struct {
 	name string
 
 	// actor mechanism
-	inbox     chan interface{}
-	outbox    chan interface{}
+	inbox  chan interface{}
+	outbox *Actor
+
 	failure   chan error
 	process   Processor
 	exception Exception
@@ -52,6 +54,7 @@ func New(p Processor, e Exception, opt *Options) *Actor {
 	opt.configure()
 
 	actor := &Actor{
+		name:      opt.Name,
 		inbox:     make(chan interface{}, opt.Worker),
 		outbox:    opt.Output,
 		process:   p,
@@ -93,7 +96,7 @@ func (actor *Actor) work(w int) {
 			}
 
 			if actor.outbox != nil {
-				actor.outbox <- result
+				actor.outbox.Queue(result)
 				actor.inboxgroup.Done() // flag 1 message as done
 				continue
 			}
@@ -110,19 +113,11 @@ func (actor *Actor) work(w int) {
 func (actor *Actor) Queue(messages ...interface{}) {
 	// add length of message to inbox wait group
 	actor.inboxgroup.Add(len(messages))
-	for _, message := range messages {
-		actor.inbox <- message
-	}
-}
-
-// Inbox exposes the actor's inbox
-func (actor *Actor) Inbox() chan<- interface{} {
-	return actor.inbox
-}
-
-// Outbox exposes the actor's outbox
-func (actor *Actor) Outbox() <-chan interface{} {
-	return actor.outbox
+	go func() {
+		for _, message := range messages {
+			actor.inbox <- message
+		}
+	}()
 }
 
 // Stop actor from processing any message
